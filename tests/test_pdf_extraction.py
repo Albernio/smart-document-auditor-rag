@@ -14,6 +14,10 @@ def create_test_pdf(path: Path, pages: list[str]) -> None:
 
     pdf.save()
 
+def create_empty_pdf(path: Path) -> None:
+    pdf = canvas.Canvas(str(path))
+    pdf.save()
+
 
 def test_extract_text_from_pdf(tmp_path: Path) -> None:
     pdf_path = tmp_path / "document.pdf"
@@ -45,3 +49,11 @@ def test_extract_text_ignores_empty_pages(tmp_path: Path) -> None:
 
     assert "First page" in text
     assert "Third page" in text
+
+def test_extract_text_from_pdf_without_text(tmp_path: Path) -> None:
+    pdf_path = tmp_path / "empty.pdf"
+    create_empty_pdf(pdf_path)
+
+    text = extract_text(pdf_path)
+
+    assert text == ""
