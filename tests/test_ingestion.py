@@ -33,4 +33,4 @@ def test_ingest_file_rejects_missing_file(tmp_path: Path) -> None:
     file_path = tmp_path / "missing.pdf"
 
     with pytest.raises(FileNotFoundError, match="File Not Found"):
-            ingest_file(file_path)
+        ingest_file(file_path)
