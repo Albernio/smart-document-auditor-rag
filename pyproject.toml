@@ -7,11 +7,14 @@ name = "smart-document-auditor-rag"
 version = "0.1.0"
 description = "RAG-based document auditing application"
 requires-python = ">=3.13,<3.14"
-dependencies = []
+dependencies = [
+    "pypdf>=6.0",
+]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=9.0",
+    "reportlab>=4.0",
 ]
 
 [tool.setuptools.packages.find]
