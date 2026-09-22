@@ -21,3 +21,16 @@ def test_ingest_rejects_non_pdf(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="File is not a PDF"):
         ingest_file(file_path)
+
+def test_ingest_file_rejects_empty_file(tmp_path: Path) -> None:
+    file_path = tmp_path / "contract.pdf"
+    file_path.touch()
+
+    with pytest.raises(ValueError, match="File is empty"):
+        ingest_file(file_path)
+
+def test_ingest_file_rejects_missing_file(tmp_path: Path) -> None:
+    file_path = tmp_path / "missing.pdf"
+
+    with pytest.raises(FileNotFoundError, match="File Not Found"):
+            ingest_file(file_path)
