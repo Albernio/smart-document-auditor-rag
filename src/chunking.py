@@ -1,8 +1,11 @@
+from src.models import Chunk
+
 def chunk_text(
     text: str,
+    document_hash: str,
     chunk_size: int = 1000,
     overlap: int = 200,
-) -> list[str]:
+) -> list[Chunk]:
     """Split text into overlapping chunks."""
 
     if chunk_size <= 0:
@@ -22,8 +25,14 @@ def chunk_text(
     chunks = []
 
     for start in range(0, len(text), step):
-        chunk = text[start:start + chunk_size]
-        chunks.append(chunk)
+        chunk_text = text[start:start + chunk_size]
+        chunks.append(
+            Chunk(
+                text=chunk_text,
+                index=len(chunks),
+                document_hash=document_hash
+            )
+        )
 
         if start + chunk_size >= len(text):
             break
