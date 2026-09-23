@@ -9,6 +9,7 @@ description = "RAG-based document auditing application"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "pypdf>=6.0",
+    "sentence-transformers>=5.0",
 ]
 
 [project.optional-dependencies]
