@@ -1,5 +1,6 @@
 from sentence_transformers import SentenceTransformer
 
+from src.models import Chunk, Embedding
 
 class EmbeddingModel:
     """Generate vector embeddings for the text"""
@@ -13,3 +14,21 @@ class EmbeddingModel:
         embedding = self.model.encode(text)
 
         return embedding.tolist()
+
+    def encode_chunks(self, chunks: list[Chunk]) -> list[Embedding]:
+        """Generate embeddings for multiple chunks."""
+
+        if not chunks:
+            return []
+
+        texts = [chunk.text for chunk in chunks]
+
+        embeddings = self.model.encode(texts)
+
+        return [
+            Embedding(
+                vector=vector.tolist(),
+                dimension=len(vector),
+            )
+            for vector in embeddings
+        ]

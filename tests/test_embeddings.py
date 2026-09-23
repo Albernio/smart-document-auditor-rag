@@ -1,4 +1,5 @@
 from src.embeddings import EmbeddingModel
+from src.models import Chunk
 
 
 def test_embedding_model_returns_vector() -> None:
@@ -35,3 +36,34 @@ def test_similar_texts_have_similar_embeddings() -> None:
     )
 
     assert len(embedding_1) == len(embedding_2)
+
+def test_encode_chunks_returns_one_embedding_per_chunk() -> None:
+    model = EmbeddingModel()
+
+    chunks = [
+        Chunk(
+            text= "The provider must respond within thirty days.",
+            index = 0,
+            document_hash="abc123"
+        ),
+        Chunk(
+            text= "The supplier must protect personal data.",
+            index = 1,
+            document_hash="abc123"
+        )
+    ]
+
+    embeddings = model.encode_chunks(chunks)
+
+    assert len(embeddings) == len(chunks)
+
+    for embedding in embeddings:
+        assert embedding.dimension == 384
+        assert len(embedding.vector) == 384
+
+def test_encode_empty_chunks_returns_empty_list() -> None:
+    model = EmbeddingModel()
+
+    embeddings = model.encode_chunks([])
+
+    assert embeddings == []
