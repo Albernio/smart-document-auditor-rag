@@ -1,6 +1,8 @@
+from pathlib import Path
 import pytest
 
-from src.chunking import chunk_text
+from src.chunking import chunk_text, chunk_document
+from src.models import Document
 
 
 def test_empty_text_returns_no_chunks() -> None:
@@ -63,3 +65,33 @@ def test_overlap_cannot_be_negative() -> None:
 def test_overlap_must_be_smaller_than_chunk_size() -> None:
     with pytest.raises(ValueError, match="overlap must be smaller"):
         chunk_text("hello", document_hash="abc123",  chunk_size=100, overlap=100)
+
+def test_chunk_document_uses_document_data() -> None:
+    document = Document(
+        path=Path("contract.pdf"),
+        filename="contract.pdf",
+        file_hash="abc123",
+        size=5000,
+        text="A" * 2500,
+    )
+
+    chunks = chunk_document(
+        document,
+        chunk_size=1000,
+        overlap=200,
+    )
+
+    assert len(chunks) == 3
+    assert all(chunk.document_hash == "abc123" for chunk in chunks)
+
+def test_chunks_have_sequential_indexes() -> None:
+    text = "A" * 2500
+
+    chunks = chunk_text(
+        text,
+        document_hash="abc123",
+        chunk_size=1000,
+        overlap=200,
+    )
+
+    assert [chunk.index for chunk in chunks] == [0, 1, 2]

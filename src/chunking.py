@@ -1,4 +1,4 @@
-from src.models import Chunk
+from src.models import Document, Chunk
 
 def chunk_text(
     text: str,
@@ -38,3 +38,16 @@ def chunk_text(
             break
 
     return chunks
+
+def chunk_document(
+    document: Document,
+    chunk_size: int = 1000,
+    overlap: int = 200,
+) -> list[Chunk]:
+    """Split a document into overlapping chunks."""
+    return chunk_text(
+        text = document.text,
+        document_hash = document.file_hash,
+        chunk_size = chunk_size,
+        overlap = overlap,
+    )
