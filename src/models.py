@@ -7,3 +7,4 @@ class Document:
     filename: str
     file_hash: str
     size: int
+    text: str = ""

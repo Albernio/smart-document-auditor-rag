@@ -1,19 +1,26 @@
 from pathlib import Path
 import pytest
+from reportlab.pdfgen import canvas
 
 from src.ingestion import ingest_file
 
 
+def create_test_pdf(path: Path, text: str) -> None:
+    pdf = canvas.Canvas(str(path))
+    pdf.drawString(100, 750, text)
+    pdf.save()
+
 def test_ingest_file_creates_document(tmp_path: Path) -> None:
     file_path = tmp_path / "contract.pdf"
-    file_path.write_bytes(b"fake pdf content")
+    create_test_pdf(file_path, "Contract content")
 
     document = ingest_file(file_path)
 
     assert document.path == file_path
     assert document.filename == "contract.pdf"
     assert document.file_hash
-    assert document.size == len(b"fake pdf content")
+    assert document.size > 0
+    assert "Contract content" in document.text
 
 def test_ingest_rejects_non_pdf(tmp_path: Path) -> None:
     file_path = tmp_path / "contract.txt"
