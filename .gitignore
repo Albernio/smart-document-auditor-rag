@@ -220,3 +220,4 @@ __marimo__/
 # Project
 data/raw/*
 data/processed/*
+scripts
