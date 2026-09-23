@@ -10,6 +10,10 @@ def create_test_pdf(path: Path, text: str) -> None:
     pdf.drawString(100, 750, text)
     pdf.save()
 
+def create_empty_pdf(path: Path) -> None:
+        pdf = canvas.Canvas(str(path))
+        pdf.save()
+
 def test_ingest_file_creates_document(tmp_path: Path) -> None:
     file_path = tmp_path / "contract.pdf"
     create_test_pdf(file_path, "Contract content")
@@ -41,3 +45,15 @@ def test_ingest_file_rejects_missing_file(tmp_path: Path) -> None:
 
     with pytest.raises(FileNotFoundError, match="File Not Found"):
         ingest_file(file_path)
+
+def test_ingest_file_accepts_pdf_without_text(tmp_path: Path) -> None:
+    file_path = tmp_path / "scanned.pdf"
+    create_empty_pdf(file_path)
+
+    document = ingest_file(file_path)
+
+    assert document.path == file_path
+    assert document.filename == "scanned.pdf"
+    assert document.file_hash
+    assert document.size > 0
+    assert document.text == ""
