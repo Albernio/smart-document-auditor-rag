@@ -1,6 +1,6 @@
 from sentence_transformers import SentenceTransformer
 
-from src.models import Chunk, Embedding
+from src.models import Chunk, Embedding, VectorRecord
 
 class EmbeddingModel:
     """Generate vector embeddings for the text"""
@@ -31,4 +31,25 @@ class EmbeddingModel:
                 dimension=len(vector),
             )
             for vector in embeddings
+        ]
+
+    def create_vector_records(
+            self,
+            chunks: list[Chunk],
+    ) -> list[VectorRecord]:
+        """Generate embeddings and combine them with their chunks."""
+
+        embeddings = self.encode_chunks(chunks)
+
+        if len(chunks) != len(embeddings):
+            raise ValueError(
+                "Number of chunks and embeddings must match."
+            )
+
+        return [
+            VectorRecord(
+                chunk=chunk,
+                embedding=embedding
+            )
+            for chunk, embedding in zip(chunks, embeddings)
         ]

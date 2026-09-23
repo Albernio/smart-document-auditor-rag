@@ -67,3 +67,27 @@ def test_encode_empty_chunks_returns_empty_list() -> None:
     embeddings = model.encode_chunks([])
 
     assert embeddings == []
+
+def test_create_vector_records_preserves_chunk_order() -> None:
+    model = EmbeddingModel()
+
+    chunks = [
+        Chunk(
+            text="The provider must respond within thirty days.",
+            index=0,
+            document_hash="abc123",
+        ),
+        Chunk(
+            text="The supplier must protect personal data.",
+            index=1,
+            document_hash="abc123",
+        ),
+    ]
+
+    records = model.create_vector_records(chunks)
+
+    assert len(records) == len(chunks)
+
+    for record, chunk in zip(records, chunks):
+        assert record.chunk == chunk
+        assert record.embedding.dimension == 384

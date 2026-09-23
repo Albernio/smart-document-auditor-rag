@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.models import Document, Chunk, Embedding
+from src.models import Document, Chunk, Embedding, VectorRecord
 
 def test_create_document() -> None:
     path = Path("contract.pdf")
@@ -48,3 +48,23 @@ def test_embedding_creation() -> None:
 
     assert embedding.vector == [0.1, 0.2, 0.3]
     assert embedding.dimension == 3
+
+def test_vector_record_creation() -> None:
+    chunk = Chunk(
+        text="The provider must respond within thirty days.",
+        index=0,
+        document_hash="abc123",
+    )
+
+    embedding = Embedding(
+        vector=[0.1, 0.2, 0.3],
+        dimension=3,
+    )
+
+    record = VectorRecord(
+        chunk=chunk,
+        embedding=embedding,
+    )
+
+    assert record.chunk == chunk
+    assert record.embedding == embedding

@@ -19,3 +19,8 @@ class Chunk:
 class Embedding:
     vector: list[float]
     dimension: int
+
+@dataclass
+class VectorRecord:
+    chunk: Chunk
+    embedding: Embedding
