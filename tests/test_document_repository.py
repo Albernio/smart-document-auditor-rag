@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from src.database import get_connection
 from src.models import Document, Chunk, VectorRecord, Embedding
 from src.repositories.document_repository import DocumentRepository
 
