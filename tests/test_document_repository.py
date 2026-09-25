@@ -5,7 +5,7 @@ from src.models import Document, Chunk, VectorRecord, Embedding
 from src.repositories.document_repository import DocumentRepository
 
 
-def test_save_document() -> None:
+def test_save_document(database_connection) -> None:
     document = Document(
         path=Path("contract.pdf"),
         filename="contract.pdf",
@@ -14,34 +14,32 @@ def test_save_document() -> None:
         text="Contract content",
     )
 
-    with get_connection() as connection:
-        repository = DocumentRepository(connection)
+    
+    repository = DocumentRepository(database_connection)
 
-        document_id = repository.save_document(document)
+    document_id = repository.save_document(document)
 
-        assert document_id > 0
+    assert document_id > 0
 
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT filename, file_hash, size
-                FROM documents
-                WHERE id = %s;
-                """,
-                (document_id,),
-            )
-
-            row = cursor.fetchone()
-
-        assert row == (
-            "contract.pdf",
-            "abc123",
-            1024,
+    with database_connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT filename, file_hash, size
+            FROM documents
+            WHERE id = %s;
+            """,
+            (document_id,),
         )
 
-        connection.rollback()
+        row = cursor.fetchone()
 
-def test_save_vector_records() -> None:
+    assert row == (
+        "contract.pdf",
+        "abc123",
+        1024,
+    )
+
+def test_save_vector_records(database_connection) -> None:
 
     document = Document(
         path=Path("contract.pdf"),
@@ -76,39 +74,38 @@ def test_save_vector_records() -> None:
                 ),
             ]
 
-    with get_connection() as connection:
-        repository = DocumentRepository(connection)
+    
+    repository = DocumentRepository(database_connection)
 
-        document_id = repository.save_document(document)
+    document_id = repository.save_document(document)
 
-        repository.save_vector_records(
-            document_id=document_id,
-            records=records,
+    repository.save_vector_records(
+        document_id=document_id,
+        records=records,
+    )
+
+    with database_connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT chunk_index, text, vector_dims(embedding)
+            FROM document_chunks
+            WHERE document_id = %s
+            ORDER BY chunk_index;
+            """,
+            (document_id,),
         )
 
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT chunk_index, text, vector_dims(embedding)
-                FROM document_chunks
-                WHERE document_id = %s
-                ORDER BY chunk_index;
-                """,
-                (document_id,),
-            )
+        rows = cursor.fetchall()
 
-            rows = cursor.fetchall()
-
-        assert rows == [
-                (
-                    0,
-                    "The provider must respond within thirty days.",
-                    384,
-                ),
-                (
-                    1,
-                    "The supplier must protect personal data.",
-                    384,
-                ),
-            ]
-        connection.rollback()
+    assert rows == [
+            (
+                0,
+                "The provider must respond within thirty days.",
+                384,
+            ),
+            (
+                1,
+                "The supplier must protect personal data.",
+                384,
+            ),
+        ]
