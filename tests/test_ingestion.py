@@ -2,8 +2,8 @@ from pathlib import Path
 import pytest
 from reportlab.pdfgen import canvas
 
-from src.ingestion import ingest_file
-
+from src.ingestion import ingest_file, ingest_document
+from src.embeddings import EmbeddingModel
 
 def create_test_pdf(path: Path, text: str) -> None:
     pdf = canvas.Canvas(str(path))
@@ -57,3 +57,47 @@ def test_ingest_file_accepts_pdf_without_text(tmp_path: Path) -> None:
     assert document.file_hash
     assert document.size > 0
     assert document.text == ""
+
+
+def test_ingest_document_persists_document(tmp_path: Path) -> None:
+    pdf_path = tmp_path / "contract.pdf"
+
+    create_test_pdf(pdf_path, "The provider must respond within thirty days.")
+
+    embedding_model = EmbeddingModel()
+
+    document_id = ingest_document(
+        pdf_path,
+        embedding_model,
+    )
+
+    assert document_id > 0
+
+def test_ingest_document_persists_chunks(
+    tmp_path: Path,
+    database_connection,
+) -> None:
+    pdf_path = tmp_path / "contract.pdf"
+
+    create_test_pdf(pdf_path, "The provider must respond within thirty days.")
+
+    embedding_model = EmbeddingModel()
+
+    document_id = ingest_document(
+        pdf_path,
+        embedding_model,
+    )
+
+    with database_connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM document_chunks
+            WHERE document_id = %s;
+            """,
+            (document_id,),
+        )
+
+        result = cursor.fetchone()
+
+    assert result[0] > 0
