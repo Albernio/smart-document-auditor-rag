@@ -24,3 +24,8 @@ class Embedding:
 class VectorRecord:
     chunk: Chunk
     embedding: Embedding
+
+@dataclass
+class SearchResult:
+    chunk: Chunk
+    distance: float
