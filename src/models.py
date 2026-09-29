@@ -29,3 +29,8 @@ class VectorRecord:
 class SearchResult:
     chunk: Chunk
     distance: float
+
+@dataclass
+class Answer:
+    text: str
+    references: list[SearchResult]
