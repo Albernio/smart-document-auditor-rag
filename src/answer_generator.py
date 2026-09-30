@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from src.models import Answer, SearchResult
-
+from src.prompts import build_rag_prompt
 
 class AnswerGenerator(ABC):
     """Generate an answer from retrieved document context."""
@@ -16,8 +16,20 @@ class AnswerGenerator(ABC):
         """Generate an answer using the provided context."""
         raise NotImplementedError
 
-class MockAnswerGenerator(AnswerGenerator):
-    """Generate deterministic answers for testing."""
+class LLMClient(ABC):
+    """Interface for a language model client."""
+
+    @abstractmethod
+    def generate(self, prompt: str) -> str:
+        """Generate text from a prompt."""
+        raise NotImplementedError
+
+
+class LLMAnswerGenerator(AnswerGenerator):
+    """Generate document-grounded answers using an LLM."""
+
+    def __init__(self, client: LLMClient) -> None:
+        self.client = client
 
     def generate(
         self,
@@ -25,7 +37,16 @@ class MockAnswerGenerator(AnswerGenerator):
         context: str,
         references: list[SearchResult],
     ) -> Answer:
+        """Generate an answer using the retrieved document context."""
+
+        prompt = build_rag_prompt(
+            question=question,
+            context=context,
+        )
+
+        text = self.client.generate(prompt)
+
         return Answer(
-            text=f"Question: {question}\nContext: {context}",
+            text=text,
             references=references,
         )
