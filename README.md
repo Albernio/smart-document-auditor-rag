@@ -4,6 +4,91 @@ Aplicación local basada en **Retrieval-Augmented Generation (RAG)** para analiz
 
 El sistema extrae el texto de los documentos PDF, lo divide en fragmentos (*chunks*), genera embeddings vectoriales, los almacena en PostgreSQL con `pgvector`, recupera los fragmentos semánticamente relevantes y utiliza un LLM local mediante Ollama para generar respuestas fundamentadas con referencias al documento y a la página.
 
+## Quick Start
+
+Sigue estos pasos para ejecutar el proyecto localmente.
+
+### 1. Clonar el repositorio
+
+```bash
+git clone <repository-url>
+cd smart-document-auditor-rag
+```
+
+### 2. Crear el entorno virtual con Python 3.13
+
+Asegúrate de tener Python 3.13 instalado.
+
+```bash
+python3.13 -m venv .venv
+```
+
+Activar el entorno virtual:
+
+**Linux / macOS:**
+
+```bash
+source .venv/bin/activate
+```
+
+**Windows:**
+
+```powershell
+.venv\Scripts\activate
+```
+
+### 3. Instalar las dependencias
+
+```bash
+pip install -e ".[dev]"
+```
+
+### 4. Iniciar PostgreSQL + pgvector
+
+Necesitas tener **Docker instalado y ejecutándose**.
+
+```bash
+docker compose up -d
+```
+
+Esto inicia PostgreSQL con la extensión `pgvector`.
+
+### 5. Crear el esquema de la base de datos
+
+Ejecuta:
+
+```bash
+python -c "from src.schema import create_tables; create_tables()"
+```
+
+Esto crea las tablas necesarias y habilita la extensión `vector`.
+
+Este paso solo es necesario para inicializar el esquema de una base de datos nueva.
+
+### 6. Ejecutar la aplicación
+
+```bash
+streamlit run app.py
+```
+
+Streamlit abrirá la aplicación en el navegador.
+
+### Todos los comandos
+
+Después de clonar el repositorio, la configuración básica es:
+
+```bash
+python3.13 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+docker compose up -d
+python -c "from src.schema import create_tables; create_tables()"
+streamlit run app.py
+```
+
+> **Requisitos:** Python 3.13 y Docker. Docker se utiliza para ejecutar PostgreSQL + pgvector.
+
+
 ## Arquitectura
 
 ```text
