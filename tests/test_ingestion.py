@@ -229,3 +229,23 @@ def test_ingest_document_rejects_non_pdf(
             path,
             EmbeddingModel(),
         )
+
+def test_ingest_file_preserves_page_numbers(tmp_path: Path) -> None:
+    pdf_path = tmp_path / "contract.pdf"
+
+    pdf = canvas.Canvas(str(pdf_path))
+
+    pdf.drawString(100, 750, "First page")
+    pdf.showPage()
+
+    pdf.drawString(100, 750, "Second page")
+    pdf.showPage()
+
+    pdf.save()
+
+    document = ingest_file(pdf_path)
+
+    assert document.pages == [
+        (1, "First page"),
+        (2, "Second page"),
+    ]

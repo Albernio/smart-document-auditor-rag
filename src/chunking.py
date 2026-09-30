@@ -1,10 +1,12 @@
 from src.models import Document, Chunk
+from src.pdf_extraction import extract_pages
 
 def chunk_text(
     text: str,
     document_hash: str,
     chunk_size: int = 1000,
     overlap: int = 200,
+    page_number: int | None = None,
 ) -> list[Chunk]:
     """Split text into overlapping chunks."""
 
@@ -25,12 +27,13 @@ def chunk_text(
     chunks = []
 
     for start in range(0, len(text), step):
-        chunk_text = text[start:start + chunk_size]
+        chnk_text = text[start:start + chunk_size]
         chunks.append(
             Chunk(
-                text=chunk_text,
+                text=chnk_text,
                 index=len(chunks),
-                document_hash=document_hash
+                document_hash=document_hash,
+                page_number=page_number,
             )
         )
 
@@ -45,9 +48,28 @@ def chunk_document(
     overlap: int = 200,
 ) -> list[Chunk]:
     """Split a document into overlapping chunks."""
-    return chunk_text(
-        text = document.text,
-        document_hash = document.file_hash,
-        chunk_size = chunk_size,
-        overlap = overlap,
-    )
+
+    if document.pages is None:
+        return chunk_text(
+            text=document.text,
+            document_hash=document.file_hash,
+            chunk_size=chunk_size,
+            overlap=overlap,
+        )
+
+    chunks = []
+
+    for page_number, page_text in document.pages:
+        page_chunks = chunk_text(
+            text=page_text,
+            document_hash=document.file_hash,
+            chunk_size=chunk_size,
+            overlap=overlap,
+            page_number=page_number,
+        )
+
+        for chunk in page_chunks:
+            chunk.index = len(chunks)
+            chunks.append(chunk)
+
+    return chunks

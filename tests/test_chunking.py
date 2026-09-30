@@ -1,8 +1,11 @@
 from pathlib import Path
 import pytest
+from reportlab.pdfgen import canvas
 
 from src.chunking import chunk_text, chunk_document
 from src.models import Document
+
+from pathlib import Path
 
 
 def test_empty_text_returns_no_chunks() -> None:
@@ -95,3 +98,49 @@ def test_chunks_have_sequential_indexes() -> None:
     )
 
     assert [chunk.index for chunk in chunks] == [0, 1, 2]
+
+def test_chunk_text_preserves_page_number() -> None:
+    chunks = chunk_text(
+        text="The provider must respond within thirty days.",
+        document_hash="abc123",
+        chunk_size=1000,
+        overlap=200,
+        page_number=3,
+    )
+
+    assert len(chunks) == 1
+    assert chunks[0].page_number == 3
+
+def create_test_pdf(path: Path, pages: list[str]) -> None:
+    pdf = canvas.Canvas(str(path))
+
+    for page_text in pages:
+        pdf.drawString(100, 750, page_text)
+        pdf.showPage()
+
+    pdf.save()
+
+
+def test_chunk_document_preserves_page_numbers() -> None:
+    document = Document(
+        path=Path("contract.pdf"),
+        filename="contract.pdf",
+        file_hash="abc123",
+        size=5000,
+        text="First page\nSecond page",
+        pages=[
+            (1, "First page"),
+            (2, "Second page"),
+        ],
+    )
+
+    chunks = chunk_document(
+        document,
+        chunk_size=1000,
+        overlap=200,
+    )
+
+    assert [(chunk.page_number, chunk.index) for chunk in chunks] == [
+        (1, 0),
+        (2, 1),
+    ]

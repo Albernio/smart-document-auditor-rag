@@ -13,6 +13,7 @@ def test_build_context_includes_chunk_text() -> None:
             chunk=Chunk(
                 text="The provider must respond within thirty days.",
                 index=0,
+                page_number=2,
                 document_hash="abc123",
             ),
             distance=0.1,
@@ -29,6 +30,7 @@ def test_build_context_includes_document_and_chunk_reference() -> None:
             chunk=Chunk(
                 text="The provider must respond within thirty days.",
                 index=2,
+                page_number=2,
                 document_hash="abc123",
             ),
             distance=0.1,

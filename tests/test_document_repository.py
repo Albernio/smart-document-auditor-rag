@@ -54,6 +54,7 @@ def test_save_vector_records(database_connection) -> None:
                     chunk=Chunk(
                         text="The provider must respond within thirty days.",
                         index=0,
+                        page_number=1,
                         document_hash="def456",
                     ),
                     embedding=Embedding(
@@ -65,6 +66,7 @@ def test_save_vector_records(database_connection) -> None:
                     chunk=Chunk(
                         text="The supplier must protect personal data.",
                         index=1,
+                        page_number=1,
                         document_hash="def456",
                     ),
                     embedding=Embedding(
@@ -128,6 +130,7 @@ def test_search_similar_returns_most_similar_chunks(database_connection) -> None
             chunk=Chunk(
                 text="The provider must respond within thirty days.",
                 index=0,
+                page_number=1,
                 document_hash=document.file_hash,
             ),
             embedding=Embedding(
@@ -139,6 +142,7 @@ def test_search_similar_returns_most_similar_chunks(database_connection) -> None
             chunk=Chunk(
                 text="The supplier must protect personal data.",
                 index=1,
+                page_number=1,
                 document_hash=document.file_hash,
             ),
             embedding=Embedding(
@@ -150,6 +154,7 @@ def test_search_similar_returns_most_similar_chunks(database_connection) -> None
             chunk=Chunk(
                 text="The contract is valid for two years.",
                 index=2,
+                page_number=1,
                 document_hash=document.file_hash,
             ),
             embedding=Embedding(
@@ -191,6 +196,7 @@ def test_search_similar_returns_search_results(database_connection) -> None:
         chunk=Chunk(
             text="The provider must respond within thirty days.",
             index=0,
+            page_number=1,
             document_hash=document.file_hash,
         ),
         embedding=Embedding(
@@ -230,6 +236,7 @@ def test_search_similar_preserves_document_hash(database_connection) -> None:
         chunk=Chunk(
             text="The provider must respond within thirty days.",
             index=0,
+            page_number=1,
             document_hash=document.file_hash,
         ),
         embedding=Embedding(
@@ -273,6 +280,7 @@ def test_search_similar_respects_limit(database_connection) -> None:
                 chunk=Chunk(
                     text=f"Chunk {index}",
                     index=index,
+                    page_number=1,
                     document_hash=document.file_hash,
                 ),
                 embedding=Embedding(
@@ -323,6 +331,7 @@ def test_search_similar_orders_by_distance(database_connection) -> None:
             chunk=Chunk(
                 text="Exact match",
                 index=0,
+                page_number=1,
                 document_hash=document.file_hash,
             ),
             embedding=Embedding(
@@ -334,6 +343,7 @@ def test_search_similar_orders_by_distance(database_connection) -> None:
             chunk=Chunk(
                 text="Different direction",
                 index=1,
+                page_number=1,
                 document_hash=document.file_hash,
             ),
             embedding=Embedding(
@@ -355,3 +365,46 @@ def test_search_similar_orders_by_distance(database_connection) -> None:
 
     assert results[0].distance <= results[1].distance
     assert results[0].chunk.index == 0
+
+def test_search_similar_preserves_page_number(
+    database_connection,
+) -> None:
+    repository = DocumentRepository(database_connection)
+
+    document = Document(
+        path=Path("contract.pdf"),
+        filename="contract.pdf",
+        file_hash="page-test-document",
+        size=1024,
+    )
+
+    document_id = repository.save_document(document)
+
+    vector = [0.0] * 384
+    vector[0] = 1.0
+
+    record = VectorRecord(
+        chunk=Chunk(
+            text="The provider must respond within thirty days.",
+            index=0,
+            document_hash=document.file_hash,
+            page_number=3,
+        ),
+        embedding=Embedding(
+            vector=vector,
+            dimension=384,
+        ),
+    )
+
+    repository.save_vector_records(
+        document_id=document_id,
+        records=[record],
+    )
+
+    results = repository.search_similar(
+        query_embedding=vector,
+        limit=1,
+    )
+
+    assert len(results) == 1
+    assert results[0].chunk.page_number == 3

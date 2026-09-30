@@ -3,7 +3,7 @@ from pathlib import Path
 from src.database import get_connection
 from src.hashing import calculate_file_hash
 from src.validation import validate_file
-from src.pdf_extraction import extract_text
+from src.pdf_extraction import extract_pages
 from src.models import Document
 from src.embeddings import EmbeddingModel
 from src.chunking import chunk_document
@@ -16,8 +16,12 @@ def ingest_file(path: Path) -> Document:
     validate_file(path)
 
     file_hash = calculate_file_hash(path)
+    pages = extract_pages(path)
 
-    text = extract_text(path)
+    text = "\n".join(
+        page_text
+        for _, page_text in pages
+    )
 
     return Document(
         path=path,
@@ -25,6 +29,7 @@ def ingest_file(path: Path) -> Document:
         file_hash=file_hash,
         size=path.stat().st_size,
         text=text,
+        pages=pages,
     )
 
 def ingest_document(

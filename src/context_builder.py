@@ -13,6 +13,7 @@ def build_context(results: list[SearchResult]) -> str:
         sections.append(
             (
                 f"[Document: {result.chunk.document_hash} | "
+                f"Page: {result.chunk.page_number} | "
                 f"Chunk: {result.chunk.index}]\n"
                 f"{result.chunk.text}"
             )

@@ -2,7 +2,7 @@ from pathlib import Path
 
 from reportlab.pdfgen import canvas
 
-from src.pdf_extraction import extract_text
+from src.pdf_extraction import extract_text, extract_pages
 
 
 def create_test_pdf(path: Path, pages: list[str]) -> None:
@@ -57,3 +57,22 @@ def test_extract_text_from_pdf_without_text(tmp_path: Path) -> None:
     text = extract_text(pdf_path)
 
     assert text == ""
+
+
+def test_extract_pages_preserves_page_numbers(tmp_path: Path) -> None:
+    pdf_path = tmp_path / "document.pdf"
+
+    create_test_pdf(
+        pdf_path,
+        [
+            "First page",
+            "Second page",
+        ],
+    )
+
+    pages = extract_pages(pdf_path)
+
+    assert pages == [
+        (1, "First page"),
+        (2, "Second page"),
+    ]

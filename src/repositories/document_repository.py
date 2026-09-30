@@ -51,14 +51,16 @@ class DocumentRepository:
                     INSERT INTO document_chunks (
                         document_id,
                         chunk_index,
+                        page_number,
                         text,
                         embedding
                     )
-                    VALUES (%s, %s, %s, %s::vector);
+                    VALUES (%s, %s, %s, %s, %s::vector);
                     """,
                     (
                         document_id,
                         record.chunk.index,
+                        record.chunk.page_number,
                         record.chunk.text,
                         str(record.embedding.vector),
                     ),
@@ -80,6 +82,7 @@ class DocumentRepository:
                 SELECT
                     dc.text,
                     dc.chunk_index,
+                    dc.page_number,
                     d.file_hash,
                     dc.embedding <=> %s::vector AS distance
                 FROM document_chunks AS dc
@@ -102,9 +105,10 @@ class DocumentRepository:
                 chunk = Chunk(
                     text = row[0],
                     index = row[1],
-                    document_hash = row[2],
+                    page_number = row[2],
+                    document_hash = row[3],
                 ),
-                distance=float(row[3]),
+                distance=float(row[4]),
             )
             for row in rows
         ]
