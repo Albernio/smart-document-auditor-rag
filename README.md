@@ -1,583 +1,618 @@
-# Smart Document Auditor
+# Smart-document-auditor
 
-Intelligent document auditing system based on **Retrieval-Augmented Generation (RAG)**.
+Aplicación local basada en **Retrieval-Augmented Generation (RAG)** para analizar documentos PDF y responder preguntas utilizando su contenido.
 
-The project aims to build a local, modular and reproducible application capable of processing multiple PDF documents, indexing their content in a vector database, answering natural-language questions and returning answers with references to the original documents.
+El sistema extrae el texto de los documentos PDF, lo divide en fragmentos (*chunks*), genera embeddings vectoriales, los almacena en PostgreSQL con `pgvector`, recupera los fragmentos semánticamente relevantes y utiliza un LLM local mediante Ollama para generar respuestas fundamentadas con referencias al documento y a la página.
 
-The project is being developed as a **Data Engineering + AI Engineering portfolio project**, with a strong focus on architecture, data pipelines, retrieval quality, evaluation and software engineering practices.
-
----
-
-## Project Status
-
-**Current status:** Initial development
-
-The project is being built incrementally, starting with the document ingestion pipeline and progressively incorporating semantic search, RAG, local LLM inference, API, frontend and evaluation.
-
----
-
-## Problem
-
-Organizations often work with large collections of:
-
-- Procedures
-- Internal policies
-- Contracts
-- Regulations
-- Manuals
-- Technical documentation
-- Compliance documents
-
-Finding specific information across these documents can be slow and error-prone.
-
-Examples of questions the system should eventually answer:
-
-- What clauses refer to data protection?
-- What is the maximum time allowed to respond to complaints?
-- Summarize the supplier's obligations.
-- Which document contains the confidentiality requirements?
-- What are the termination conditions?
-
-The system should provide not only an answer, but also the evidence used to produce it.
-
----
-
-## Objective
-
-Build a document intelligence platform with the following capabilities:
-
-1. Upload multiple PDF documents.
-2. Extract and structure their content.
-3. Split documents into meaningful chunks.
-4. Generate vector embeddings.
-5. Index chunks and metadata in a vector-enabled database.
-6. Retrieve relevant information for a natural-language query.
-7. Generate an answer using a local LLM.
-8. Return traceable references to the original document.
-9. Evaluate retrieval and answer quality.
-10. Provide a reproducible local development environment.
-
----
-
-## High-Level Architecture
-
-```text
-                         USER
-                           |
-                           v
-                  +----------------+
-                  |   Streamlit    |
-                  |    Frontend    |
-                  +-------+--------+
-                          |
-                          | HTTP
-                          v
-                  +----------------+
-                  |    FastAPI     |
-                  |      API       |
-                  +-------+--------+
-                          |
-             +------------+------------+
-             |                         |
-             v                         v
-      INGESTION PIPELINE          QUERY PIPELINE
-             |                         |
-             v                         v
-         PyMuPDF                  Query Embedding
-             |                         |
-             v                         v
-         Cleaning                Vector Retrieval
-             |                         |
-             v                         v
-         Chunking                    Top-K
-             |                         |
-             v                         v
-       Embeddings               Optional Reranking
-             |                         |
-             +------------+------------+
-                          |
-                          v
-              +-----------------------+
-              | PostgreSQL + pgvector |
-              |                       |
-              | Documents             |
-              | Chunks                |
-              | Embeddings            |
-              | Metadata              |
-              +-----------+-----------+
-                          |
-                          v
-                    +-----------+
-                    |  Ollama   |
-                    |    LLM    |
-                    +-----+-----+
-                          |
-                          v
-                  Answer + Citations
-                          |
-                          v
-                        USER
-```
-
----
-
-## Data Flow
-
-### Document ingestion
+## Arquitectura
 
 ```text
 PDF
- |
- v
-Validation
- |
- v
-File storage
- |
- v
-PDF parsing
- |
- v
-Text extraction
- |
- v
-Cleaning
- |
- v
+ ↓
+Validación
+ ↓
+Hash SHA-256
+ ↓
+Extracción de texto
+ ↓
+Conservación de páginas
+ ↓
 Chunking
- |
- v
-Metadata enrichment
- |
- v
-Embeddings
- |
- v
+ ↓
+Embeddings con Sentence Transformers
+ ↓
 PostgreSQL + pgvector
+ ↓
+Búsqueda por similitud semántica
+ ↓
+Chunks relevantes
+ ↓
+Construcción del contexto
+ ↓
+Ollama / qwen3:8b
+ ↓
+Respuesta + referencias
 ```
 
-### Query processing
+La aplicación Streamlit proporciona la interfaz de usuario para subir documentos y realizar preguntas.
 
 ```text
-Natural-language question
- |
- v
-Query embedding
- |
- v
-Vector search
- |
- v
-Relevant chunks
- |
- v
-Optional reranking
- |
- v
-Context construction
- |
- v
-LLM generation
- |
- v
-Answer + document references
+                    ┌──────────────────────┐
+                    │      Streamlit       │
+                    │       app.py         │
+                    └──────────┬───────────┘
+                               │
+                    ┌──────────▼───────────┐
+                    │    Pipeline RAG      │
+                    └──────────┬───────────┘
+                               │
+             ┌─────────────────┼─────────────────┐
+             │                 │                 │
+             ▼                 ▼                 ▼
+       PostgreSQL          Embeddings         Ollama
+        + pgvector        SentenceTransformers qwen3:8b
 ```
 
----
+## Funcionalidades
 
-## Technology Stack
+* Validación de documentos PDF.
+* Identificación de documentos mediante SHA-256.
+* Extracción de texto de PDF.
+* Conservación de metadatos de página.
+* División del texto en chunks con solapamiento.
+* Generación de embeddings mediante Sentence Transformers.
+* Embeddings de 384 dimensiones utilizando `all-MiniLM-L6-v2`.
+* PostgreSQL con `pgvector`.
+* Búsqueda por similitud vectorial.
+* Inferencia local mediante Ollama.
+* Generación de respuestas basada en RAG.
+* Referencias a documento, página y chunk.
+* Interfaz de usuario con Streamlit.
+* Tests unitarios y de integración.
 
-### Core
-
-- **Python 3.13**
-- **FastAPI**
-- **Streamlit**
-- **PostgreSQL**
-- **pgvector**
-- **PyMuPDF**
-- **Sentence Transformers**
-- **Ollama**
-- **Qwen3** as the initial local LLM
-
-### Development
-
-- **Git / GitHub**
-- **pytest**
-- **Ruff**
-- **mypy**
-- **Docker**
-- **Docker Compose**
-- **SQLAlchemy**
-- **Alembic**
-- **Pydantic / pydantic-settings**
-
----
-
-## Project Principles
-
-The project follows several engineering principles.
-
-### Modular architecture
-
-Document ingestion, retrieval, generation and data access are isolated into independent modules.
-
-### Reproducibility
-
-The complete development environment should be reproducible locally using documented dependencies and Docker.
-
-### Idempotent ingestion
-
-The system should detect previously processed documents using file hashes and avoid unnecessary duplicate processing.
-
-### Traceability
-
-Every generated answer should be linked to the original evidence through document and page metadata.
-
-### Retrieval before generation
-
-Retrieval quality is treated as an independent problem from LLM generation.
-
-### Evaluation
-
-The system should be evaluated using a predefined dataset rather than only through manual inspection.
-
-### Local-first
-
-The initial architecture uses local/open-source components wherever practical, including local LLM inference through Ollama.
-
----
-
-## Initial Data Model
-
-### Documents
+## Estructura del proyecto
 
 ```text
-documents
--------------------------
-id
-filename
-file_hash
-file_path
-upload_date
-page_count
-status
-metadata
-```
-
-### Chunks
-
-```text
-chunks
--------------------------
-id
-document_id
-chunk_index
-page_start
-page_end
-section
-content
-token_count
-embedding
-created_at
-```
-
-Future versions may introduce query history, retrieval results, answers, document versions and audit results.
-
----
-
-## Development Roadmap
-
-### Phase 1 — Python foundation
-
-- Project structure
-- Virtual environment
-- Type hints
-- Dataclasses
-- File management
-- Validation
-- Hashing
-- Logging
-- Unit testing
-- Code quality
-
-### Phase 2 — PDF ingestion
-
-- PDF parsing
-- Text extraction
-- Page-level representation
-- Cleaning
-- Document metadata
-
-### Phase 3 — Chunking
-
-- Chunking strategy
-- Overlap
-- Structural metadata
-- Chunk quality analysis
-
-### Phase 4 — Database
-
-- PostgreSQL
-- SQL
-- SQLAlchemy
-- Alembic
-- pgvector
-- Database schema
-
-### Phase 5 — Embeddings
-
-- Embedding models
-- Query/document embeddings
-- Similarity metrics
-- Vector storage
-
-### Phase 6 — Retrieval
-
-- Vector search
-- Top-K retrieval
-- Retrieval evaluation
-
-### Phase 7 — RAG
-
-- Context construction
-- Prompt design
-- Grounded generation
-- No-answer behaviour
-
-### Phase 8 — Local LLM
-
-- Ollama
-- Local model inference
-- Model comparison
-- Context window
-- Performance considerations
-
-### Phase 9 — Citations
-
-- Source metadata
-- Page references
-- Evidence tracking
-- Citation generation
-
-### Phase 10 — API and UI
-
-- FastAPI
-- REST endpoints
-- Streamlit interface
-- Document management
-- Question answering
-
-### Phase 11 — Testing and Evaluation
-
-- Unit tests
-- Integration tests
-- Retrieval benchmarks
-- Recall@K
-- MRR
-- Answer correctness
-- Faithfulness
-- Latency
-
-### Phase 12 — Advanced Retrieval
-
-- Full-text search
-- BM25
-- Hybrid search
-- Result fusion
-- Reranking
-
-### Phase 13 — Scalability
-
-Potential future additions:
-
-- MinIO / object storage
-- Redis
-- Celery
-- Kafka
-- Asynchronous processing
-- Worker architecture
-
-### Phase 14 — Observability and Production
-
-Potential future additions:
-
-- Structured logging
-- Prometheus
-- Grafana
-- OpenTelemetry
-- Authentication
-- RBAC
-- CI/CD
-- Cloud deployment
-
-### Phase 15 — Advanced AI capabilities
-
-Potential future additions:
-
-- Multi-document reasoning
-- Automated document auditing
-- Rule-based compliance checks
-- Knowledge graphs / GraphRAG
-- Human-in-the-loop workflows
-- Document versioning
-
----
-
-## Initial Project Structure
-
-```text
-smart-document-auditor/
-|
+smart-document-auditor-rag/
+├── app.py
 ├── src/
-│   ├── api/
-│   ├── core/
-│   ├── ingestion/
-│   ├── embeddings/
-│   ├── retrieval/
-│   ├── generation/
-│   ├── citations/
-│   ├── db/
-│   └── schemas/
-|
+│   ├── __init__.py
+│   ├── hashing.py
+│   ├── validation.py
+│   ├── models.py
+│   ├── ingestion.py
+│   ├── pdf_extraction.py
+│   ├── chunking.py
+│   ├── embeddings.py
+│   ├── vector_similarity.py
+│   ├── database.py
+│   ├── schema.py
+│   ├── semantic_search.py
+│   ├── context_builder.py
+│   ├── prompts.py
+│   ├── answer_generator.py
+│   ├── rag.py
+│   ├── llm/
+│   │   └── ollama_client.py
+│   └── repositories/
+│       ├── __init__.py
+│       └── document_repository.py
 ├── tests/
-|
-├── frontend/
-|
-├── scripts/
-|
-├── data/
-│   ├── raw/
-│   └── processed/
-|
+├── docs/
+│   └── adr/
 ├── pyproject.toml
 ├── docker-compose.yml
-├── .env.example
-├── .gitignore
 └── README.md
 ```
 
----
+## Requisitos
 
-## Example Future Workflow
+* Python 3.13
+* Docker y Docker Compose
+* Ollama
+* Modelo local de Ollama, actualmente `qwen3:8b`
 
-The final user experience should look approximately like:
+## 1. Clonar el repositorio
 
-```text
-1. Upload documents
-
-   contract.pdf
-   complaints_manual.pdf
-   privacy_policy.pdf
-
-2. Documents are indexed
-
-   contract.pdf              ✓
-   complaints_manual.pdf     ✓
-   privacy_policy.pdf        ✓
-
-3. Ask a question
-
-   "What is the maximum period for responding to complaints?"
-
-4. System retrieves relevant evidence
-
-   contract.pdf
-   page 17
-   section 7.2
-
-5. Local LLM generates the answer
-
-   "The maximum response period is 15 days."
-
-6. System returns the evidence
-
-   Source:
-   contract.pdf
-   Page 17
-   Section 7.2
+```bash
+git clone <repository-url>
+cd smart-document-auditor-rag
 ```
 
----
+## 2. Crear el entorno virtual
 
-## Goals of the Portfolio Project
-
-This project is intended to demonstrate practical skills in:
-
-### Data Engineering
-
-- Data pipelines
-- ETL
-- Document processing
-- Data modelling
-- SQL
-- PostgreSQL
-- Vector databases
-- Data quality
-- Idempotency
-
-### AI Engineering
-
-- Embeddings
-- Semantic search
-- Retrieval-Augmented Generation
-- LLM inference
-- Prompt engineering
-- Reranking
-- RAG evaluation
-
-### Software Engineering
-
-- Modular architecture
-- REST APIs
-- Testing
-- Type checking
-- Logging
-- Configuration management
-- Version control
-
-### Infrastructure
-
-- Docker
-- Reproducible environments
-- Local AI inference
-- CI/CD
-- Observability
-- Scalable processing
-
----
-
-## Current Focus
-
-The project is currently focused on the foundations:
-
-```text
-Python
-  ↓
-Project structure
-  ↓
-File management
-  ↓
-Validation
-  ↓
-Hashing
-  ↓
-Document model
-  ↓
-Tests
+```bash
+python3.13 -m venv .venv
 ```
 
-The next milestone is to implement real PDF ingestion using **PyMuPDF**.
+Activarlo:
 
----
+### Linux / macOS
 
-## License
+```bash
+source .venv/bin/activate
+```
 
-License to be defined.
+### Windows
 
----
+```powershell
+.venv\Scripts\activate
+```
 
-## Author
+## 3. Instalar el proyecto
 
-**Alberto**
+Instalar el proyecto junto con sus dependencias de desarrollo:
 
-Data Engineering / AI Engineering Portfolio Project
+```bash
+pip install -e ".[dev]"
+```
+
+Esto instala las dependencias de la aplicación, entre ellas:
+
+* `pypdf`
+* `sentence-transformers`
+* `psycopg`
+* `ollama`
+* `streamlit`
+* `pytest`
+* `reportlab`
+
+## 4. Iniciar PostgreSQL + pgvector
+
+El proyecto utiliza la imagen de PostgreSQL con `pgvector`:
+
+```bash
+docker compose up -d
+```
+
+Comprobar el contenedor:
+
+```bash
+docker compose ps
+```
+
+La aplicación utiliza actualmente estos parámetros de conexión:
+
+```text
+Host:     localhost
+Port:     5432
+Database: document_auditor
+User:     auditor
+Password: auditor
+```
+
+## 5. Crear el esquema de base de datos
+
+El esquema está definido en:
+
+```text
+src/schema.py
+```
+
+El esquema contiene dos tablas principales.
+
+### `documents`
+
+Almacena metadatos del documento:
+
+* nombre del archivo
+* hash SHA-256
+* tamaño
+* fecha de creación
+
+### `document_chunks`
+
+Almacena:
+
+* ID del documento
+* índice del chunk
+* número de página
+* texto extraído
+* embedding vectorial
+* fecha de creación
+
+La columna de embeddings está configurada para vectores de **384 dimensiones**.
+
+## 6. Instalar y ejecutar Ollama
+
+Instala Ollama siguiendo las instrucciones oficiales.
+
+Comprobar la instalación:
+
+```bash
+ollama --version
+```
+
+Descargar el modelo utilizado por la aplicación:
+
+```bash
+ollama pull qwen3:8b
+```
+
+Comprobar los modelos disponibles:
+
+```bash
+ollama list
+```
+
+La aplicación se conecta actualmente a:
+
+```text
+http://localhost:11434
+```
+
+La integración con Ollama se encuentra en:
+
+```text
+src/llm/ollama_client.py
+```
+
+La aplicación utiliza una abstracción (`LLMClient`) para desacoplar el proveedor de LLM del resto de la arquitectura RAG.
+
+Esto permite sustituir Ollama por otro proveedor en el futuro sin modificar la lógica principal del pipeline.
+
+## 7. Ejecutar los tests
+
+Ejecutar toda la suite:
+
+```bash
+pytest -v
+```
+
+El proyecto contiene tests unitarios y de integración.
+
+Los tests de integración requieren que esté disponible la infraestructura correspondiente:
+
+* PostgreSQL + pgvector
+* Ollama
+* `qwen3:8b`
+
+## 8. Ejecutar la aplicación Streamlit
+
+Desde la raíz del proyecto:
+
+```bash
+streamlit run app.py
+```
+
+Streamlit abrirá la aplicación en el navegador.
+
+Actualmente la interfaz permite:
+
+1. Subir un PDF.
+2. Procesar el documento.
+3. Realizar una pregunta en lenguaje natural.
+4. Ejecutar una búsqueda semántica.
+5. Generar una respuesta mediante Ollama.
+6. Mostrar referencias de documento, página y chunk.
+
+## 9. Ejecutar el pipeline RAG completo
+
+Una vez ejecutándose Streamlit:
+
+### Paso 1 — Subir un PDF
+
+Utiliza el control **Upload a PDF document**.
+
+### Paso 2 — Procesar el documento
+
+Pulsa:
+
+```text
+Ingest document
+```
+
+La aplicación ejecutará:
+
+```text
+PDF
+ ↓
+Validación
+ ↓
+SHA-256
+ ↓
+Extracción de texto
+ ↓
+Chunking
+ ↓
+Embeddings
+ ↓
+PostgreSQL + pgvector
+```
+
+### Paso 3 — Realizar una pregunta
+
+Introduce una pregunta relacionada con los documentos.
+
+Por ejemplo:
+
+```text
+How many days does the provider have to respond to a complaint?
+```
+
+La aplicación ejecutará:
+
+```text
+Pregunta
+ ↓
+Embedding de la pregunta
+ ↓
+Búsqueda por similitud vectorial
+ ↓
+Chunks relevantes
+ ↓
+Construcción del contexto
+ ↓
+Ollama
+ ↓
+Respuesta
+```
+
+### Paso 4 — Consultar las referencias
+
+La respuesta incluye referencias que identifican:
+
+```text
+Documento
+Página
+Chunk
+```
+
+Esto permite mantener trazabilidad entre la respuesta generada y el contenido recuperado del documento.
+
+## Ejemplo
+
+Si un documento contiene:
+
+```text
+The service provider must respond to any formal customer complaint
+within thirty days from the date on which the complaint is received.
+```
+
+y realizamos la pregunta:
+
+```text
+How many days does the provider have to respond?
+```
+
+el sistema debería recuperar el chunk correspondiente y generar una respuesta basada en el contexto del documento.
+
+## Flujo de datos
+
+### Ingestión de documentos
+
+```text
+PDF subido
+     │
+     ▼
+ingest_document()
+     │
+     ├── validate_file()
+     ├── calculate_file_hash()
+     ├── extract_pages()
+     ├── chunk_document()
+     ├── create_vector_records()
+     └── save_vector_records()
+                │
+                ▼
+        PostgreSQL + pgvector
+```
+
+### Respuesta a preguntas
+
+```text
+Pregunta del usuario
+     │
+     ▼
+search_documents()
+     │
+     ├── EmbeddingModel.encode()
+     │
+     ▼
+search_similar()
+     │
+     ▼
+SearchResult[]
+     │
+     ▼
+build_context()
+     │
+     ▼
+LLMAnswerGenerator
+     │
+     ▼
+Ollama / qwen3:8b
+     │
+     ▼
+Answer
+ + referencias
+```
+
+## Reiniciar la base de datos
+
+Durante el desarrollo se puede vaciar la base de datos con:
+
+```sql
+TRUNCATE TABLE documents RESTART IDENTITY CASCADE;
+```
+
+Esto elimina los documentos y sus chunks asociados y reinicia los contadores de identidad.
+
+Comprobar:
+
+```sql
+SELECT COUNT(*) FROM documents;
+SELECT COUNT(*) FROM document_chunks;
+```
+
+Ambas consultas deberían devolver:
+
+```text
+0
+```
+
+## Configuración
+
+Actualmente la aplicación utiliza valores predeterminados para desarrollo local.
+
+### PostgreSQL
+
+```text
+host=localhost
+port=5432
+database=document_auditor
+user=auditor
+password=auditor
+```
+
+### Ollama
+
+```text
+host=http://localhost:11434
+model=qwen3:8b
+```
+
+### Embeddings
+
+```text
+model=all-MiniLM-L6-v2
+dimensions=384
+```
+
+Estos valores están actualmente definidos en el código y son adecuados para el entorno local de desarrollo.
+
+Para un despliegue de producción, la configuración debería externalizarse mediante variables de entorno o una capa específica de configuración.
+
+## Estrategia de testing
+
+El proyecto utiliza varias capas de testing.
+
+### Tests unitarios
+
+Se prueban componentes individuales como:
+
+* hashing
+* validación
+* extracción de PDF
+* chunking
+* embeddings
+* similitud vectorial
+* construcción del contexto
+* construcción de prompts
+
+### Tests del repositorio
+
+Verifican la persistencia en PostgreSQL y el comportamiento de las búsquedas vectoriales.
+
+### Tests de integración
+
+Verifican la interacción entre:
+
+```text
+Aplicación
+ ↓
+PostgreSQL
+ ↓
+pgvector
+```
+
+y:
+
+```text
+Aplicación
+ ↓
+Ollama
+```
+
+### Test end-to-end del RAG
+
+El test de integración del RAG verifica el flujo completo:
+
+```text
+Documento
+ ↓
+Ingestión
+ ↓
+Almacenamiento vectorial
+ ↓
+Búsqueda semántica
+ ↓
+Contexto
+ ↓
+LLM
+ ↓
+Respuesta
+```
+
+## Decisiones de diseño
+
+Las decisiones arquitectónicas importantes están documentadas mediante ADRs en:
+
+```text
+docs/adr/
+```
+
+Las decisiones actuales incluyen:
+
+* estructura del proyecto
+* identificación de documentos mediante SHA-256
+* extracción de texto de PDF
+* chunking basado en caracteres
+* embeddings mediante Sentence Transformers
+* PostgreSQL + pgvector
+* diseño de `VectorRecord`
+
+## Arquitectura local
+
+La implementación actual está diseñada para ejecutarse localmente:
+
+```text
+PDF ───────────────┐
+                   │
+PostgreSQL ────────┤── Máquina local
+                   │
+Embeddings ────────┤
+                   │
+Ollama / qwen3:8b ─┘
+```
+
+Durante la ejecución normal, los documentos y la inferencia del LLM permanecen en el entorno local.
+
+Además, este enfoque evita costes por petición asociados a APIs externas de LLM.
+
+## Limitaciones actuales
+
+Este proyecto es un MVP. Entre sus limitaciones actuales:
+
+* No existe autenticación ni autorización.
+* No existe configuración para despliegue en producción.
+* El PDF original subido no se conserva de forma persistente.
+* Las credenciales de PostgreSQL son actualmente valores de desarrollo.
+* La configuración todavía no está externalizada.
+* La interfaz Streamlit es todavía mínima.
+* No existe una interfaz avanzada de gestión de documentos.
+* El chunking es actualmente basado en caracteres y no en la estructura semántica del documento.
+* Los PDFs escaneados o basados únicamente en imágenes no tienen OCR.
+* La recuperación utiliza actualmente similitud vectorial sin una capa híbrida de búsqueda por palabras clave.
+* No existe todavía una etapa de reranking.
+* No existe todavía una capa específica de evaluación de calidad del RAG.
+
+## Próximas mejoras
+
+Posibles siguientes pasos:
+
+* Mejorar la interfaz de Streamlit.
+* Aplicar caching a los modelos de embeddings y clientes LLM.
+* Añadir gestión de documentos.
+* Mejorar las referencias de las fuentes.
+* Añadir OCR para documentos escaneados.
+* Añadir búsqueda híbrida.
+* Añadir reranking.
+* Externalizar la configuración.
+* Añadir logging y observabilidad.
+* Preparar un despliegue de producción.
+* Crear datasets de evaluación y métricas específicas para evaluar la calidad del RAG.
+
+## Licencia
+
+Este proyecto está desarrollado como proyecto de portfolio y código abierto.
