@@ -1,0 +1,1 @@
+Para pruebas usaré los datasets de https://www.atticusprojectai.org/cuad/

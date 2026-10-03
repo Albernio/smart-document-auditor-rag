@@ -1,8 +1,4 @@
-# ADR-0001: Utilizar SHA-256 para identificar el contenido de los documentos
-
-## Estado
-
-Aceptada
+# ADR-0002: Utilizar SHA-256 para identificar el contenido de los documentos
 
 ## Contexto
 
@@ -10,11 +6,11 @@ La aplicación necesita identificar de forma fiable los documentos que procesa d
 
 Además, el sistema debe poder detectar si un documento ya ha sido procesado para evitar la indexación duplicada del mismo contenido.
 
-Para ello necesitamos una representación determinista del contenido binario del archivo que pueda almacenarse junto con los metadatos del documento y utilizarse posteriormente para comprobar su identidad.
+Para ello necesito una representación determinista del contenido binario del archivo que pueda almacenarse junto con los metadatos del documento y utilizarse posteriormente para comprobar su identidad.
 
 ## Decisión
 
-Utilizaremos SHA-256 para calcular una huella digital del contenido binario de cada documento.
+Utilizaré SHA-256 para calcular una huella digital del contenido binario de cada documento.
 
 El hash se calculará directamente sobre los bytes del archivo mediante lectura incremental en bloques, evitando cargar el archivo completo en memoria.
 
@@ -23,24 +19,6 @@ La implementación utilizará el algoritmo SHA-256 proporcionado por la bibliote
 El resultado se almacenará como una cadena hexadecimal en el atributo `file_hash` del objeto `Document`.
 
 En PostgreSQL, el campo `file_hash` tendrá una restricción `UNIQUE` para impedir que el mismo contenido binario sea registrado más de una vez.
-
-## Alternativas consideradas
-
-### Utilizar el nombre del archivo
-
-Se descarta porque el nombre no identifica de forma fiable el contenido. Dos archivos diferentes pueden tener el mismo nombre y un mismo documento puede cambiar de nombre sin que su contenido cambie.
-
-### Utilizar MD5
-
-Se descarta como opción principal porque MD5 presenta vulnerabilidades conocidas relacionadas con colisiones. Aunque puede ser suficiente para determinados casos de checksum, SHA-256 proporciona una opción más apropiada para identificar contenido en este proyecto.
-
-### Utilizar SHA-1
-
-Se descarta porque SHA-1 también presenta vulnerabilidades conocidas relacionadas con colisiones y no ofrece ventajas relevantes frente a SHA-256 para este caso de uso.
-
-### Utilizar el contenido completo como identificador
-
-Se descarta porque no resulta práctico utilizar el contenido completo como identificador para almacenamiento, comparación y referencias. Un hash proporciona una representación compacta y determinista del contenido.
 
 ## Consecuencias
 
