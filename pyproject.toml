@@ -13,6 +13,7 @@ dependencies = [
     "psycopg[binary]>=3.2",
     "ollama>=0.5",
     "streamlit>=1.40",
+    "pytesseract",
 ]
 
 [project.optional-dependencies]
